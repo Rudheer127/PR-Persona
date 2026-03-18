@@ -7,6 +7,7 @@ from app.integrations.github_client import github_client
 from app.schemas.pr import AnalyzablePR
 from app.schemas.analysis import AnalysisResult
 from app.api.deps import verify_api_key
+from app.services.analysis_orchestrator import analysis_orchestrator
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/analyze", tags=["analysis"])
@@ -46,13 +47,14 @@ async def analyze_pr(req: AnalyzeRequest):
             file_list=[f["filename"] for f in raw_data["files"]]
         )
 
-        # 4. Trigger Analysis Orchestrator (Stubbed for now)
-        # result = await analysis_orchestrator.run(pr_metadata)
+        # 4. Trigger Analysis Orchestrator
+        result = await analysis_orchestrator.run(pr_metadata)
         
         return {
             "status": "processing",
-            "message": f"Analysis queued for PR #{pr_number}",
-            "pr_metadata": pr_metadata.model_dump()
+            "message": f"Analysis completed for PR #{pr_number}",
+            "pr_metadata": pr_metadata.model_dump(),
+            "analysis_result": result.model_dump()
         }
 
     except ValueError as e:
