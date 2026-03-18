@@ -50,8 +50,17 @@ async def analyze_pr(req: AnalyzeRequest):
         # 4. Trigger Analysis Orchestrator
         result = await analysis_orchestrator.run(pr_metadata)
         
+        # 5. Persist to Supabase
+        # Catch and log DB errors so we don't fail the user if DB is down but analysis worked
+        try:
+            from app.repositories.supabase_repo import supabase_repo
+            db_record = await supabase_repo.save_analysis(pr_metadata, result, req.user_id)
+            logger.info("analysis_saved_to_db", record_id=db_record.get("id"))
+        except Exception as e:
+            logger.error("analysis_persistence_failed", error=str(e))
+            
         return {
-            "status": "processing",
+            "status": "completed",
             "message": f"Analysis completed for PR #{pr_number}",
             "pr_metadata": pr_metadata.model_dump(),
             "analysis_result": result.model_dump()
